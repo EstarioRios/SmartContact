@@ -6,6 +6,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # Authentication-related API endpoints (login, signup)
     path("api/auth/", include("AuthenticationSystem.urls")),
-    # # Academy-related API endpoints (scores, classes, profiles)
-    # path("api/", include("Academi.urls")),
+    # Contact-related API endpoints (--)
+    # path("api/contact", include("Contact.urls")),
 ]

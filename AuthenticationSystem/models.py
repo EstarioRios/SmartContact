@@ -86,24 +86,9 @@ class CustomUserManager(BaseUserManager):
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
 
-    USER_TYPES = [
-        ("student", "Student"),
-        ("teacher", "Teacher"),
-        ("admin", "Admin"),
-    ]
-
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    id_code = models.PositiveIntegerField(unique=True)
-    user_type = models.CharField(max_length=50, choices=USER_TYPES, default="student")
-    ed_class = models.ForeignKey(
-        to="Ed_Class",
-        on_delete=models.CASCADE,
-        related_name="students",
-        null=True,
-        blank=True,
-    )
-    active_mode = models.BooleanField(default=True)
+    first_name = models.CharField(max_length=100, blank=True, null=True)
+    last_name = models.CharField(max_length=100, blank=True, null=True)
+    user_name = models.CharField(unique=True, blank=False, null=False)
     groups = models.ManyToManyField(
         Group,
         verbose_name="groups",
@@ -125,45 +110,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.get(id_code=id_code)
 
     objects = CustomUserManager()
-    USERNAME_FIELD = "id"
+    USERNAME_FIELD = "user_name"
     REQUIRED_FIELDS = ["first_name", "last_name"]
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
-
-
-class Ed_Class(models.Model):
-    title = models.CharField(
-        max_length=100,
-        null=False,
-        blank=False,
-        unique=True,
-    )
-    teacher = models.ForeignKey(
-        to=CustomUser,
-        on_delete=models.CASCADE,
-        related_name="classes",
-        null=False,
-        blank=False,
-    )
-
-
-class Score(models.Model):
-    title = models.CharField(
-        max_length=100,
-        blank=False,
-        null=False,
-    )
-    value = models.DecimalField(
-        decimal_places=2,
-        max_digits=3,
-        null=False,
-        blank=False,
-    )
-    student = models.ForeignKey(
-        to=CustomUser,
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
-        related_name="scores",
-    )
