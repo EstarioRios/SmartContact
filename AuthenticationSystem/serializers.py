@@ -5,4 +5,4 @@ from .models import CustomUser
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fielids = ["__all__"]
+        fields = "__all__"

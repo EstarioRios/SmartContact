@@ -12,73 +12,27 @@ class CustomUserManager(BaseUserManager):
     def get_by_natural_key(self, id_code):
         return self.get(id_code=id_code)
 
-    def create_student(
+    def create_user(
         self,
         first_name=None,
         last_name=None,
-        user_type="student",
+        user_name=None,
         password=None,
-        id_code=None,
-        active_mode=True,
-        ed_class=None,
         **extra_fields,
     ):
-        if not first_name:
-            raise ValueError("The 'first_name' must be set")
-        elif not last_name:
-            raise ValueError("The 'last_name' must be set")
-        elif not id_code:
-            raise ValueError("The 'id_code' must be set")
-        elif not password:
-            raise ValueError("The 'password' must be set")
-        elif not ed_class:
-            raise ValueError("The 'ed_class' must be set")
+        if not all([password, user_name]):
+            raise ValueError(f"'user_name' and 'password' fields are required")
 
-        if self.model.objects.filter(id_code=id_code).exists():
-            raise ValueError(f"The 'id_code' {id_code} is already taken.")
+        if CustomUser.objects.filter(user_name=user_name).exists():
+            raise ValueError(f"'user_name': {user_name} is allready exist")
 
         user = self.model(
             first_name=first_name,
             last_name=last_name,
-            user_type=user_type,
-            id_code=id_code,
-            active_mode=active_mode,
+            user_name=user_name,
             **extra_fields,
         )
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
 
-    def create_teacher(
-        self,
-        first_name=None,
-        last_name=None,
-        user_type="teacher",
-        password=None,
-        id_code=None,
-        active_mode=True,
-        **extra_fields,
-    ):
-        if not first_name:
-            raise ValueError("The 'first_name' must be set")
-        elif not last_name:
-            raise ValueError("The 'last_name' must be set")
-        elif not id_code:
-            raise ValueError("The 'id_code' must be set")
-        elif not password:
-            raise ValueError("The 'password' must be set")
-
-        if self.model.objects.filter(id_code=id_code).exists():
-            raise ValueError(f"The 'id_code' {id_code} is already taken.")
-
-        user = self.model(
-            first_name=first_name,
-            last_name=last_name,
-            user_type=user_type,
-            id_code=id_code,
-            active_mode=active_mode,
-            **extra_fields,
-        )
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -88,7 +42,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)
-    user_name = models.CharField(unique=True, blank=False, null=False)
+    user_name = models.CharField(unique=True, blank=False, null=False, max_length=150)
     groups = models.ManyToManyField(
         Group,
         verbose_name="groups",
@@ -105,9 +59,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         related_name="customuser_set",
         related_query_name="customuser",
     )
-
-    def get_by_natural_key(self, id_code):
-        return self.get(id_code=id_code)
 
     objects = CustomUserManager()
     USERNAME_FIELD = "user_name"
