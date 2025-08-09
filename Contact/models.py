@@ -3,8 +3,8 @@ from phonenumber_field.modelfields import PhoneNumberField
 from AuthenticationSystem.models import CustomUser
 
 
-class Tag(models.Model):
-    title = models.CharField(max_length=50, unique=True)
+# class Tag(models.Model):
+#     title = models.CharField(max_length=50, unique=True)
 
 
 class Contact(models.Model):
@@ -13,7 +13,5 @@ class Contact(models.Model):
     owner_user = models.ForeignKey(
         CustomUser, on_delete=models.CASCADE, related_name="contacts"
     )
-    tags = models.ManyToManyField(
-        Tag,
-    )
+    tags = models.TextField(null=True, blank=True, default="none")
     created_at = models.DateTimeField(auto_now_add=True)
