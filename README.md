@@ -2,8 +2,11 @@
 
 ## Overview
 
-This API provides user authentication (signup/login) and contact management features.
+This API provides user authentication (signup/login) and contact management features.  
 It uses **JWT authentication** for secured endpoints and supports manual login with an optional `remember` flag to receive JWT tokens.
+
+This backend is built with **Django** and **Django REST Framework (DRF)** and uses **Redis** for caching/session management or token blacklisting (depending on implementation).  
+The system manages contacts with tagging and categorization features to organize contacts efficiently.
 
 ---
 

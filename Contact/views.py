@@ -151,7 +151,7 @@ def delete_contact(request):
     )
 
 
-@api_view(["PULL"])
+@api_view(["PUT"])
 @permission_classes([IsAuthenticated])
 def edit_contact(request):
     user_auth = JWTAuthentication().authenticate(request)
