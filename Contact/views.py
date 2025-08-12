@@ -1,8 +1,9 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.core.cache import cache
 
 from .serializers import ContactSerializer, ContactListSerializer
 from .models import Contact
@@ -14,20 +15,12 @@ from AuthenticationSystem.models import CustomUser
 def create_contact(request):
     contact_name = request.data.get("name")
     contact_phone_number = request.data.get("phone_number")
-    # contact_owner_user = request.data.get("owner_user")
     contact_tags = request.data.get("tags")
 
-    if not all(
-        [
-            contact_name,
-            contact_phone_number,
-            # contact_owner_user,
-            contact_tags,
-        ]
-    ):
+    if not all([contact_name, contact_phone_number, contact_tags]):
         return Response(
             {
-                f"error": "all fields (contact_name, contact_phone_number, contact_tags) are required"
+                "error": "all fields (contact_name, contact_phone_number, contact_tags) are required"
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
@@ -40,16 +33,17 @@ def create_contact(request):
         )
 
     user, _ = user_auth
-
     contact_owner_user = user
 
     try:
-        contact = Contact.objects.create(
+        Contact.objects.create(
             name=contact_name,
             phone_number=contact_phone_number,
             owner_user=contact_owner_user,
             tags=contact_tags,
         )
+        cache.delete(f"user_{user.id}_contacts")
+        cache.delete_pattern(f"user_{user.id}_contacts_tag_*")
         return Response(
             {"msg": "was successfuly"},
             status=status.HTTP_201_CREATED,
@@ -71,6 +65,15 @@ def view_all_contacts(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
     user, _ = user_auth
+
+    cache_key = f"user_{user.id}_contacts"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return Response(
+            {"msg": "was successful (from cache)", "contacts": cached_data},
+            status=status.HTTP_200_OK,
+        )
+
     try:
         user_contacts = user.contacts
     except ValueError as e:
@@ -78,11 +81,11 @@ def view_all_contacts(request):
             {"error": f"{e}"},
             status=status.HTTP_404_NOT_FOUND,
         )
+
+    serialized_data = ContactListSerializer(user_contacts).data
+    cache.set(cache_key, serialized_data, timeout=60 * 5)
     return Response(
-        {
-            "msg": "was successful",
-            "contacts": ContactListSerializer(user_contacts).data,
-        },
+        {"msg": "was successful", "contacts": serialized_data},
         status=status.HTTP_200_OK,
     )
 
@@ -101,6 +104,12 @@ def view_contacts_deppents_on_tag(request):
             {"error": "tag parameter is required"}, status=status.HTTP_400_BAD_REQUEST
         )
     user, _ = user_auth
+
+    cache_key = f"user_{user.id}_contacts_tag_{tag}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return Response(cached_data, status=status.HTTP_200_OK)
+
     user_contacts = user.contacts.all()
     final_contacts = []
     for contact in user_contacts:
@@ -108,7 +117,9 @@ def view_contacts_deppents_on_tag(request):
         tags_list = [t.strip().lower() for t in tags_of_contact.split("-")]
         if tag in tags_list:
             final_contacts.append(contact)
+
     serializer = ContactSerializer(final_contacts, many=True)
+    cache.set(cache_key, serializer.data, timeout=60 * 5)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -145,10 +156,9 @@ def delete_contact(request):
         )
 
     contact.delete()
-    return Response(
-        {},
-        status=status.HTTP_200_OK,
-    )
+    cache.delete(f"user_{user.id}_contacts")
+    cache.delete_pattern(f"user_{user.id}_contacts_tag_*")
+    return Response({}, status=status.HTTP_200_OK)
 
 
 @api_view(["PUT"])
@@ -192,3 +202,6 @@ def edit_contact(request):
         contact.tags = new_tags
 
     contact.save()
+    cache.delete(f"user_{user.id}_contacts")
+    cache.delete_pattern(f"user_{user.id}_contacts_tag_*")
+    return Response({"msg": "Contact updated"}, status=status.HTTP_200_OK)
